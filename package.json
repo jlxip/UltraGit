@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/jlxip/UltraGit/issues"
   },
-  "homepage": "https://github.com/jlxip/UltraGit#readme"
+  "homepage": "https://github.com/jlxip/UltraGit#readme",
+  "dependencies": {
+    "async": "^2.6.0",
+    "fs": "0.0.1-security",
+    "git-server": "git+https://github.com/stackdot/NodeJS-Git-Server.git",
+    "mariasql": "^0.2.6"
+  }
 }

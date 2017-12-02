@@ -1,7 +1,7 @@
 var dbconnection = require('./dbconnection.js')
 var getUsers = require('./getUsers.js')
 var getRepos = require('./getRepos.js')
-var GitServer = require('git-server')
+var Server = require('node-git-server')
 var fs = require('fs')
 
 exports.UltraGitServer = class {
@@ -33,7 +33,43 @@ exports.UltraGitServer = class {
 	init(reposPath, port, callback) {
 		this.reposPath = reposPath
 		this.checkReposPath(() => {
-			getUsers.getUsers(this.db, (users) => {
+			const repos = new Server(reposPath, {
+				autoCreate: false,
+				authenticate: (type, repo, user, pwd, next) => {
+					console.log(type)
+					return new Promise((resolve, reject) => {
+						getUsers.getUsers(this.db, (users) => {
+							var gotit = false
+							for(var i=0;i<users.length;++i) {
+								if(users[i].user == user && users[i].pwd == pwd) {
+									gotit = true
+								}
+							}
+	
+							if(gotit) {
+								console.log(user+':'+pwd+' is doing '+type+' on '+repo) // DEBUG
+								return resolve()
+							}
+							return reject('Invalid username or password.')
+						})
+					})
+				}
+			})
+
+			repos.on('push', (push) => {
+				console.log('Doing push')
+				push.accept()
+			})
+
+			repos.on('fetch', (fetch) => {
+				console.log('Doing fetch')
+				fetch.accept()
+			})
+
+			repos.listen(port, () => {
+				console.log(`Starting server at http://localhost:${port}`)
+			})
+			/*getUsers.getUsers(this.db, (users) => {
 				getRepos.getRepos(this.db, users, (repos) => {
 					var opts = {
 						repos: repos,
@@ -44,7 +80,7 @@ exports.UltraGitServer = class {
 
 					new GitServer(opts)
 				})
-			})
+			})*/
 		})
 	}
 }

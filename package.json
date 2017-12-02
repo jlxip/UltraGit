@@ -19,7 +19,7 @@
   "dependencies": {
     "async": "^2.6.0",
     "fs": "0.0.1-security",
-    "git-server": "git+https://github.com/stackdot/NodeJS-Git-Server.git",
-    "mariasql": "^0.2.6"
+    "mariasql": "^0.2.6",
+    "node-git-server": "^0.3.4"
   }
 }

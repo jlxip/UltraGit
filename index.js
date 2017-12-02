@@ -1,7 +1,8 @@
 var dbconnection = require('./dbconnection.js')
 var getUsers = require('./getUsers.js')
-var getRepos = require('./getRepos.js')
-var GitServer = require('git-server')
+// FUTURE: var getRepoData = require('./getRepoData.js')
+var getPermissions = require('./getPermissions.js')
+var Server = require('node-git-server')
 var fs = require('fs')
 
 exports.UltraGitServer = class {
@@ -33,17 +34,39 @@ exports.UltraGitServer = class {
 	init(reposPath, port, callback) {
 		this.reposPath = reposPath
 		this.checkReposPath(() => {
-			getUsers.getUsers(this.db, (users) => {
-				getRepos.getRepos(this.db, users, (repos) => {
-					var opts = {
-						repos: repos,
-						port: port,
-						repoLocation: reposPath,
-						logging: true
-					}
+			const repos = new Server(reposPath, {
+				autoCreate: false,
+				authenticate: (type, repo, user, pwd, next) => {
+					return new Promise((resolve, reject) => {
+						getUsers.getUsers(this.db, (users) => {
+							for(var i=0;i<users.length;++i) {
+								if(users[i].user == user && users[i].pwd == pwd) {
+									return resolve()
+								}
+							}
 
-					new GitServer(opts)
+							return reject('Invalid username or password.')
+						})
+					})
+				}
+			})
+
+			repos.on('fetch', (fetch) => {
+				getPermissions.isReadable(this.db, fetch.username, fetch.repo, (r) => {
+					if(r) fetch.accept()
+					else fetch.reject()	// This prints in the client-side an awful error.
 				})
+			})
+
+			repos.on('push', (push) => {
+				getPermissions.isWritable(this.db, push.username, push.repo, (r) => {
+					if(r) push.accept()
+					else push.reject()
+				})
+			})
+
+			repos.listen(port, () => {
+				console.log(`Server running at http://localhost:${port}`)
 			})
 		})
 	}

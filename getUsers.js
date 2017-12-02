@@ -3,7 +3,7 @@ exports.getUsers = (db, callback) => {
 	db.query(Q, function(err, recv) {
 		users = []
 		for(var i=0;i<recv.length;i++) {
-			users.push({ username: recv[i].USERNAME , password: recv[i].PASSWORD })
+			users.push({ user: recv[i].USERNAME , pwd: recv[i].PASSWORD })
 		}
 		callback(users)
 	})

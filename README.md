@@ -1,8 +1,8 @@
 # UltraGit
 > The easiest way to create an uncomplicated private or public git server, that's up to you.
-<br>
+
 ![Dependencies](https://david-dm.org/jlxip/UltraGit.svg)
-<br><br>
+
 > UltraGit is a fast and easy to deploy git server written in Node.js. It uses MariaDB as database to store the users information and permissions.
 
 ## Install
@@ -12,7 +12,8 @@ npm install ultragit
 
 ## Usage
 First, create a new MariaDB database with the name you want, and leave it empty.<br>
-Then, it's as easy as this:<br>
+Then, it's as easy as this:
+
 ```javascript
 const rugs = require('ultragit')
 
@@ -30,7 +31,8 @@ ugs.dbconnect(DB_IP, DB_USER, DB_PWD, DB_NAME, () => {
     })
 })
 ```
-Finally, run it, and you're ready to go.<br>
+
+Finally, run it, and you're ready to go.
 ```
 node index.js
 ```

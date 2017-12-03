@@ -1,6 +1,7 @@
 # UltraGit
 > The easiest way to create an uncomplicated private or public git server, that's up to you.
 
+![Build status](https://api.travis-ci.org/jlxip/UltraGit.svg?branch=master)
 [![Npm Version](https://img.shields.io/npm/v/ultragit.svg)](https://www.npmjs.com/package/ultragit)
 ![Dependencies](https://david-dm.org/jlxip/UltraGit.svg)
 

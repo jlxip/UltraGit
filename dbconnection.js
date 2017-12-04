@@ -1,40 +1,34 @@
-var Client = require('mariasql');
+const sqlite3 = require('sqlite3')
 const async = require('async')
 
-exports.dbconnect = (host, user, password, dbname, callback) => {
-	var c = new Client({
-		host: host,
-		user: user,
-		password: password,
-		db: dbname
-	})
-	checkTables(c, () => {
-		callback(c)
+exports.dbconnect = (dbname, callback) => {
+	const db = new sqlite3.Database(dbname)
+	checkTables(db, () => {
+		callback(db)
 	})
 }
 
 checkTables = (db, callback) => {
-	Q = 'SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = \'REPOS\''
-	db.query(Q, function(err, recv) {
-		if(recv.info.numRows == 0) {
-			createTables(db, () => {
-				console.log('DB initialized.')
-				callback()
-			})
-		} else callback()
+	db.all("SELECT 1 FROM sqlite_master WHERE type='table' AND name='REPOS'", (err, allRows) => {
+		if(err) {
+			console.log('Error reading database.')
+			return
+		}
+		if(allRows.length == 0) createTables(db, callback)
+		else callback()
 	})
 }
 
 createTables = (db, callback) => {
-	Q = [
-	"CREATE TABLE `PERMISSIONS` (`ID` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY, `USER` varchar(32) NOT NULL, `REPO` varchar(128) NOT NULL, `LEVEL` int(11) NOT NULL DEFAULT '1') ENGINE=InnoDB DEFAULT CHARSET=utf8",
-	"CREATE TABLE `REPOS` (`NAME` varchar(128) CHARACTER SET utf8 NOT NULL PRIMARY KEY, `ANONREAD` int(11) NOT NULL DEFAULT '0') ENGINE=InnoDB DEFAULT CHARSET=utf8",
-	"CREATE TABLE `USERS` (`USERNAME` varchar(32) CHARACTER SET utf8 NOT NULL PRIMARY KEY, `PASSWORD` varchar(128) CHARACTER SET utf8 NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8"
-	]
+	db.serialize(() => {
+		Q = [
+			"CREATE TABLE `PERMISSIONS` (`ID` INTEGER PRIMARY KEY AUTOINCREMENT, `USER` TEXT, `REPO` TEXT, `LEVEL` INT DEFAULT '1')",
+			"CREATE TABLE `REPOS` (`NAME` TEXT PRIMARY KEY, `ANONREAD` INT DEFAULT '0')",
+			"CREATE TABLE `USERS` (`USERNAME` TEXT PRIMARY KEY, `PASSWORD` TEXT)"
+			]
 
-	async.forEachOf(Q, (dataElement, i, inner_callback) => {
-		db.query(dataElement, inner_callback)
-	}, () => {
-		callback()
+		for(var i=0;i<Q.length;++i) db.run(Q[i])
 	})
+
+	callback()
 }

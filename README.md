@@ -5,7 +5,7 @@
 [![Npm Version](https://img.shields.io/npm/v/ultragit.svg)](https://www.npmjs.com/package/ultragit)
 ![Dependencies](https://david-dm.org/jlxip/UltraGit.svg)
 
-> UltraGit is a fast and easy to deploy git server written in Node.js. It uses MariaDB as database to store the users information and permissions.
+> UltraGit is a fast and easy to deploy git server written in Node.js. It uses SQLite as database to store the users information and permissions.
 
 ## Install
 ```
@@ -13,24 +13,18 @@ npm install ultragit
 ```
 
 ## Usage
-First, create a new MariaDB database with the name you want, and leave it empty.<br>
-Then, it's as easy as this:
+It's as easy as this:
 
 ```javascript
 const rugs = require('ultragit')
 
 const ugs = new rugs.UltraGitServer()
-const DB_IP = 'localhost'
-const DB_USER = 'root'
-const DB_PWD = 'password'
-const DB_NAME = 'GIT'
+const DB_PATH = '/opt/GIT/DB'
 const REPOS_PATH = '/opt/GIT/repos'
 const PORT = 1221
 
-ugs.dbconnect(DB_IP, DB_USER, DB_PWD, DB_NAME, () => {
-    ugs.init(REPOS_PATH, PORT, () => {
-      console.log('UltraGit running at http://localhost:' + PORT)
-    })
+ugs.init(DB_PATH, REPOS_PATH, PORT, () => {
+    console.log('UltraGit running at http://localhost:' + PORT)
 })
 ```
 

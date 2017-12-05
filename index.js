@@ -1,6 +1,6 @@
 var dbconnection = require('./dbconnection.js')
 var getUsers = require('./getUsers.js')
-// FUTURE: var getRepoData = require('./getRepoData.js')
+var getRepoData = require('./getRepoData.js')
 var getPermissions = require('./getPermissions.js')
 var Server = require('node-git-server')
 var fs = require('fs')
@@ -31,39 +31,60 @@ exports.UltraGitServer = class {
 		})
 	}
 
+	login(user, next) {
+		user((username, password) => {
+			getUsers.getUsers(this.db, (users) => {
+				var result = false
+
+				for(var i=0;i<users.length;++i) {
+					if(users[i].USERNAME == username && users[i].PASSWORD == password) {
+						result = true
+						break
+					}
+				}
+
+				next(username, result)
+			})
+		})
+	}
+
 	init(dbname, reposPath, port, callback) {
 		this.dbconnect(dbname, () => {
 			this.reposPath = reposPath
 			this.checkReposPath(() => {
 				const repos = new Server(reposPath, {
 					autoCreate: false,
-					authenticate: (type, repo, user, pwd, next) => {
-						return new Promise((resolve, reject) => {
-							getUsers.getUsers(this.db, (users) => {
-								for(var i=0;i<users.length;++i) {
-									if(users[i].USERNAME == user && users[i].PASSWORD == pwd) {
-										return resolve()
-									}
+					authenticate: (type, repo, user, next) => {
+						if(type == 'push') {	// Push
+							this.login(user, (username, loginResult) => {
+								if(loginResult) {
+									getPermissions.isWritable(this.db, username, repo, (r) => {
+										if(r) next();
+										else next('You have not writing permissions on this repo.');
+									})
+								} else {
+									next('Invalid username or password.')
 								}
-
-								return reject('Invalid username or password.')
 							})
-						})
+						} else {	// Fetch
+							getRepoData.getAnonRead(this.db, repo, (anonRead) => {
+								if(anonRead) {
+									next()
+								} else {
+									this.login(user, (username, loginResult) => {
+										if(loginResult) {
+											getPermissions.isReadable(this.db, username, repo, (r) => {
+												if(r) next();
+												else next('You have not reading permissions on this repo.')
+											})
+										} else {
+											next('Invalid username or password.')
+										}
+									})
+								}
+							})
+						}
 					}
-				})
-
-				repos.on('fetch', (fetch) => {
-					getPermissions.isReadable(this.db, fetch.username, fetch.repo, (r) => {
-						if(r) fetch.accept()
-						else fetch.reject()	// This prints in the client-side an awful error.
-					})
-				})
-
-				repos.on('push', (push) => {
-					getPermissions.isWritable(this.db, push.username, push.repo, (r) => {
-						if(r) push.accept()
-						else push.reject()
-					})
 				})
 
 				repos.listen(port, callback)

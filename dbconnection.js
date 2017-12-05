@@ -1,5 +1,4 @@
 const sqlite3 = require('sqlite3')
-const async = require('async')
 
 exports.dbconnect = (dbname, callback) => {
 	const db = new sqlite3.Database(dbname)

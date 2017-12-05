@@ -1,5 +1,5 @@
 var dbconnection = require('./dbconnection.js')	// For connecting to the database.
-var getUsers = require('./getUsers.js')	// For getting the users.
+var checkUser = require('./checkUser.js')	// For checking users in the database.
 var getRepoData = require('./getRepoData.js')	// For getting the data of a given repository.
 var getPermissions = require('./getPermissions.js')	// For getting permissions.
 var Server = require('node-git-server')	// The package this one is based on.
@@ -33,17 +33,8 @@ exports.UltraGitServer = class {	// A classy class.
 
 	login(user, next) {	// A method for asking the client to log in.
 		user((username, password) => {	// Log in, client. And give me your username and password.
-			getUsers.getUsers(this.db, (users) => {	// Get all the users.
-				var result = false	// So far, the user does not exist.
-
-				for(var i=0;i<users.length;++i) {	// Check for every user.
-					if(users[i].USERNAME == username && users[i].PASSWORD == password) {	// Found!
-						result = true	// The user does exist.
-						break	// Skip the rest of the for loop.
-					}
-				}
-
-				next(username, result)	// Go back. Return the entered username (by the client) and whether it exists.
+			checkUser.checkUser(this.db, username, password, (result) => {	// Does the user exist?
+				next(username, result)	// Yes. Correct combination of username and password.
 			})
 		})
 	}

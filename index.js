@@ -1,83 +1,83 @@
-var dbconnection = require('./dbconnection.js')
-var getUsers = require('./getUsers.js')
-var getRepoData = require('./getRepoData.js')
-var getPermissions = require('./getPermissions.js')
-var Server = require('node-git-server')
-var fs = require('fs')
+var dbconnection = require('./dbconnection.js')	// For connecting to the database.
+var getUsers = require('./getUsers.js')	// For getting the users.
+var getRepoData = require('./getRepoData.js')	// For getting the data of a given repository.
+var getPermissions = require('./getPermissions.js')	// For getting permissions.
+var Server = require('node-git-server')	// The package this one is based on.
+var fs = require('fs')	// To manage the directory which contains the repositories.
 
-exports.UltraGitServer = class {
-	constructor() {
+exports.UltraGitServer = class {	// A classy class.
+	constructor() {	// Declare some 'global' variables.
 		this.db = null
 		this.reposPath = null
 	}
 
-	dbconnect(dbname, callback) {
-		dbconnection.dbconnect(dbname, (db) => {
-			this.db = db
-			callback()
+	dbconnect(dbname, callback) {	// Connect to the database.
+		dbconnection.dbconnect(dbname, (db) => {	// Call the method in dbconnection.js
+			this.db = db	// Set the variable 'db' to the received one.
+			callback()	// Go back.
 		})
 	}
 
-	checkReposPath(callback) {
-		fs.exists(this.reposPath, (r) => {
-			if(r) {
-				callback()
-			} else {
-				fs.mkdir(this.reposPath, (err) => {
-					if(err) console.log('The path could not be created.')
-					else callback()
+	checkReposPath(callback) {	// Check if the directory which contains the repositories exist.
+		fs.exists(this.reposPath, (r) => {	// Does it exist?
+			if(r) {	// It exists.
+				callback()	// Go back.
+			} else {	// It doesn't exist.
+				fs.mkdir(this.reposPath, (err) => {	// Created
+					if(err) console.log('The path could not be created. Check your writing permissions.')
+					else callback()	// Go back.
 				})
 			}
 		})
 	}
 
-	login(user, next) {
-		user((username, password) => {
-			getUsers.getUsers(this.db, (users) => {
-				var result = false
+	login(user, next) {	// A method for asking the client to log in.
+		user((username, password) => {	// Log in, client. And give me your username and password.
+			getUsers.getUsers(this.db, (users) => {	// Get all the users.
+				var result = false	// So far, the user does not exist.
 
-				for(var i=0;i<users.length;++i) {
-					if(users[i].USERNAME == username && users[i].PASSWORD == password) {
-						result = true
-						break
+				for(var i=0;i<users.length;++i) {	// Check for every user.
+					if(users[i].USERNAME == username && users[i].PASSWORD == password) {	// Found!
+						result = true	// The user does exist.
+						break	// Skip the rest of the for loop.
 					}
 				}
 
-				next(username, result)
+				next(username, result)	// Go back. Return the entered username (by the client) and whether it exists.
 			})
 		})
 	}
 
-	init(dbname, reposPath, port, callback) {
-		this.dbconnect(dbname, () => {
-			this.reposPath = reposPath
-			this.checkReposPath(() => {
-				const repos = new Server(reposPath, {
-					autoCreate: false,
-					authenticate: (type, repo, user, next) => {
+	init(dbname, reposPath, port, callback) {	// Let the magic begin.
+		this.dbconnect(dbname, () => {	// Connect to the database.
+			this.reposPath = reposPath	// Set the reposPath variable to the given one.
+			this.checkReposPath(() => {	// Check if it exists. Otherwise, create it.
+				const repos = new Server(reposPath, {	// Create the git server
+					autoCreate: false,	// Do NOT automatically create repositories.
+					authenticate: (type, repo, usr, next) => {	// When an user connects to a repository.
 						if(type == 'push') {	// Push
-							this.login(user, (username, loginResult) => {
-								if(loginResult) {
-									getPermissions.isWritable(this.db, username, repo, (r) => {
-										if(r) next();
+							this.login(user, (username, loginResult) => {	// Does the username exist?
+								if(loginResult) {	// Yep.
+									getPermissions.isWritable(this.db, username, repo, (r) => {	// Can the user push?
+										if(r) next();	// Yes.
 										else next('You have not writing permissions on this repo.');
 									})
-								} else {
+								} else {	// Doesn't look like it.
 									next('Invalid username or password.')
 								}
 							})
-						} else {	// Fetch
-							getRepoData.getAnonRead(this.db, repo, (anonRead) => {
-								if(anonRead) {
-									next()
-								} else {
-									this.login(user, (username, loginResult) => {
-										if(loginResult) {
-											getPermissions.isReadable(this.db, username, repo, (r) => {
-												if(r) next();
+						} else {	// Fetch (clone)
+							getRepoData.getAnonRead(this.db, repo, (anonRead) => {	// Can the repository be cloned by anone?
+								if(anonRead) {	// Yep.
+									next()	// Everything's fine. No need to log in.
+								} else {	// Nop.
+									this.login(user, (username, loginResult) => {	// Make the client enter username and password.
+										if(loginResult) {	// The user exists.
+											getPermissions.isReadable(this.db, username, repo, (r) => {	// Can the user clone?
+												if(r) next();	// Yes.
 												else next('You have not reading permissions on this repo.')
 											})
-										} else {
+										} else {	// The user does not exist.
 											next('Invalid username or password.')
 										}
 									})
@@ -87,7 +87,7 @@ exports.UltraGitServer = class {
 					}
 				})
 
-				repos.listen(port, callback)
+				repos.listen(port, callback)	// Start listening. Maybe someone knocks the door.
 			})
 		})
 	}

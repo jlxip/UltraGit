@@ -54,7 +54,7 @@ exports.UltraGitServer = class {	// A classy class.
 			this.checkReposPath(() => {	// Check if it exists. Otherwise, create it.
 				const repos = new Server(reposPath, {	// Create the git server
 					autoCreate: false,	// Do NOT automatically create repositories.
-					authenticate: (type, repo, usr, next) => {	// When an user connects to a repository.
+					authenticate: (type, repo, user, next) => {	// When an user connects to a repository.
 						if(type == 'push') {	// Push
 							this.login(user, (username, loginResult) => {	// Does the username exist?
 								if(loginResult) {	// Yep.
